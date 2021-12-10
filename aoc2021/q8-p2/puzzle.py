@@ -71,12 +71,13 @@ def decode(input):
     for out in [c for c in input[1].strip().split(' ')]:
         result += uncode(out, codes, keys) * mult
         mult /= 10
-    #print(result)
+    print(basis)
+    print(codes)
     return int(result)
 
 def solve(data):
     result = 0
-    for line in data:
+    for line in data[-1:]:
         result += decode(line)
     print(result)
     return result

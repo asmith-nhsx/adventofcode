@@ -6,7 +6,7 @@ class TestBasic(unittest.TestCase):
         with open('test.txt') as file:
             data = puzzle.parse(file.readlines())
             answer = puzzle.solve(data)
-            self.assertEqual(61229, answer)
+            self.assertEqual(15, answer)
 
     #def test_real_pass(self):
     #    with open('input.txt') as file:

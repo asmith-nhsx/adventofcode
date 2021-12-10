@@ -6,12 +6,12 @@ class TestBasic(unittest.TestCase):
         with open('test.txt') as file:
             data = puzzle.parse(file.readlines())
             answer = puzzle.solve(data)
-            self.assertEqual(61229, answer)
+            self.assertEqual(26397, answer)
 
-    #def test_real_pass(self):
-    #    with open('input.txt') as file:
-    #        data = puzzle.parse(file.readlines())
-    #        answer = puzzle.solve(data)
-    #        self.assertEqual(1070957, answer)
+    def test_real_pass(self):
+        with open('input.txt') as file:
+            data = puzzle.parse(file.readlines())
+            answer = puzzle.solve(data)
+            self.assertEqual(1070957, answer)
 if __name__ == '__main__':
     unittest.main()
