@@ -1,5 +1,3 @@
-import re
-
 def parse(lines):
     return (lines[0].strip(),
             [v.strip().split(' -> ') for v in lines[2:]])
@@ -24,6 +22,9 @@ def pairCounts(template):
         counts = addCount(counts, pair)
     return counts
 
+# Credit: Idea to keep hold of pair counts not the full string
+# courtesy of https://beny23.github.io/posts/advent_of_code_2021_day_14/
+# via: https://github.com/bruntonspall/adventofcode/blob/master/2021/Day%2014.ipynb
 def polymerise(counts, rules):
     newcounts = {}
     for pair, num in counts.items():
@@ -35,10 +36,7 @@ def polymerise(counts, rules):
 def freq(counts, last):
     f = {last:1}
     for pair, num in counts.items():
-        if pair[0] in f:
-            f[pair[0]] += num
-        else:
-            f[pair[0]] = num
+        f = addCount(f, pair[0], num)
     return f
 
 def solve(data):
