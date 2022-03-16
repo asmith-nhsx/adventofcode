@@ -74,7 +74,7 @@ def readPacket(chunk, pos):
     type = bin2Dec(input[3:6])
     next = -1
     if (type == 4):
-        _, next = readLiteral(input, pos)
+        return readLiteral(input, pos)
     else:
         subPkts = []
         len_id = input[6:7]
@@ -83,9 +83,26 @@ def readPacket(chunk, pos):
         else:
             subPkts, next = readSubpackets(input)
 
-        version += sum([v[0] for v in subPkts])
-
-    return (version, next)
+        values = [v[0] for v in subPkts]
+        if (type == 0):
+            value = sum(values)
+        elif (type == 1):
+            value = 1
+            for i in values:
+                value *= i
+        elif (type == 2):
+            value = min(values)
+        elif (type == 3):
+            value = max(values)
+        elif (type == 5):
+            value = 1 if values[0] > values[1] else 0
+        elif (type == 6):
+            value = 1 if values[0] < values[1] else 0
+        elif (type == 7):
+            value = 1 if values[0] == values[1] else 0
+        else:
+            raise ValueError("type not known")
+    return (value, next)
 
 def solve(data):
     result = []
