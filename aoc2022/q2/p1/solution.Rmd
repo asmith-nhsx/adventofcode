@@ -3,10 +3,7 @@ editor_options:
   markdown:
     wrap: 80
 output:
-  html_document:
-    df_print: paged
-  pdf_document: default
-  word_document: default
+  rmarkdown::github_document
 ---
 
 # Helpers
