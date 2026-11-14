@@ -235,8 +235,10 @@ function createView3D(container, onPick) {
       markersGroup.add(c.marker.group);
     },
 
-    // done = { X: [lines], O: [lines] }: draw a rod through each completed
-    // line and make its markers glow in the player's colour.
+    // done = { X: [lines], O: [lines] }: draw a thin rod through each
+    // completed line, running from the centre of the first marker to the
+    // centre of the last so its ends stay hidden inside the end markers,
+    // and make the markers glow in the player's colour.
     showLines(done) {
       disposeGroup(linesGroup);
       for (const player of ['X', 'O']) {
@@ -244,7 +246,7 @@ function createView3D(container, onPick) {
           const start = cellPosition(line[0]);
           const end = cellPosition(line[2]);
           const rod = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.07, 0.07, start.distanceTo(end) + 0.9, 12),
+            new THREE.CylinderGeometry(0.03, 0.03, start.distanceTo(end), 12),
             new THREE.MeshStandardMaterial({ color: COLORS[player], emissive: COLORS[player], emissiveIntensity: 0.4 })
           );
           rod.position.copy(start).add(end).multiplyScalar(0.5);
