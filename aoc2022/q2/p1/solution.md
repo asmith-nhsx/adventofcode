@@ -98,6 +98,9 @@ harness(15, solve)
     ## # Auto named with `tibble::lst()`: tibble::lst(mean, median)
     ## 
     ## # Using lambdas list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
 
     ## [1] "Passed"
 
