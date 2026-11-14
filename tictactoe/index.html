@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Noughts and Crosses</title>
+  <title>3D Noughts and Crosses</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <h1>Noughts and Crosses</h1>
+    <h1>3D Noughts and Crosses</h1>
 
     <div class="mode">
       <label><input type="radio" name="mode" value="pvp" checked> 2 players</label>
@@ -17,8 +17,11 @@
 
     <p id="status" aria-live="polite">X to play</p>
 
-    <div id="board" role="grid" aria-label="Game board">
-      <!-- 9 cells created by script.js -->
+    <p class="hint">A 3×3×3 cube shown as three layers. Get three in a row on one layer,
+      straight down through the layers, or diagonally across them.</p>
+
+    <div id="boards">
+      <!-- 3 layers of 9 cells each, created by script.js -->
     </div>
 
     <div class="scores">
