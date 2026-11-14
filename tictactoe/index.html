@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noughts and Crosses</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Noughts and Crosses</h1>
+
+    <div class="mode">
+      <label><input type="radio" name="mode" value="pvp" checked> 2 players</label>
+      <label><input type="radio" name="mode" value="cpu"> vs computer</label>
+    </div>
+
+    <p id="status" aria-live="polite">X to play</p>
+
+    <div id="board" role="grid" aria-label="Game board">
+      <!-- 9 cells created by script.js -->
+    </div>
+
+    <div class="scores">
+      <span>X: <strong id="score-x">0</strong></span>
+      <span>Draws: <strong id="score-draw">0</strong></span>
+      <span>O: <strong id="score-o">0</strong></span>
+    </div>
+
+    <div class="buttons">
+      <button id="new-game">New game</button>
+      <button id="reset-scores">Reset scores</button>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
