@@ -65,21 +65,26 @@ function createView3D(container, onPick) {
   const linesGroup = new THREE.Group();
   scene.add(markersGroup, linesGroup);
 
-  // X is two crossed bars, O is a ring. Both are turned to face the camera
-  // every frame so they read correctly from any angle.
+  // X is a red tetrahedron, O is a blue sphere. Both are true 3D shapes, so
+  // they read correctly from any angle without turning to face the camera.
   function makeMarker(player) {
-    const mat = new THREE.MeshStandardMaterial({
-      color: COLORS[player], roughness: 0.4, metalness: 0.1, transparent: true,
-    });
     const group = new THREE.Group();
+    let mat;
     if (player === 'X') {
-      for (const angle of [Math.PI / 4, -Math.PI / 4]) {
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.17, 0.17), mat);
-        bar.rotation.z = angle;
-        group.add(bar);
-      }
+      // Flat shading gives each face its own shade, so the edges stay crisp.
+      mat = new THREE.MeshStandardMaterial({
+        color: COLORS.X, roughness: 0.45, metalness: 0.1, flatShading: true, transparent: true,
+      });
+      const tetra = new THREE.Mesh(new THREE.TetrahedronGeometry(0.5), mat);
+      // Tilt so the (1,1,1) vertex points straight up and the opposite face
+      // sits flat on the bottom: turn 45° about z, then -35.26° about x.
+      tetra.rotation.set(-Math.atan(Math.SQRT1_2), 0, Math.PI / 4);
+      group.add(tetra);
     } else {
-      group.add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 16, 40), mat));
+      mat = new THREE.MeshStandardMaterial({
+        color: COLORS.O, roughness: 0.3, metalness: 0.1, transparent: true,
+      });
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 16), mat));
     }
     return { group, mat };
   }
@@ -165,7 +170,6 @@ function createView3D(container, onPick) {
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    markersGroup.children.forEach(m => m.quaternion.copy(camera.quaternion));
     renderer.render(scene, camera);
   }
   animate();
