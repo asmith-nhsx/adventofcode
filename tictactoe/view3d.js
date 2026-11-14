@@ -207,11 +207,13 @@ function createView3D(container, onPick) {
       });
       planeMat.opacity = PLANE_OPACITY;
       planeEdgeMat.opacity = PLANE_EDGE_OPACITY;
-      // Banned centre: a solid grey block that can't be picked.
+      // Banned centre: a grey block filling the whole space between the
+      // planes (scaled up from the 0.9 hit box to the full cell size).
       const banned = cells[bannedIndex];
       banned.state = '#';
+      banned.box.scale.setScalar(SPACING / 0.9);
       banned.mat.color.setHex(0x999999);
-      banned.mat.opacity = 0.6;
+      banned.mat.opacity = 0.45;
       banned.mat.visible = true;
     },
 
