@@ -36,29 +36,47 @@ function createView3D(container, onPick) {
   sun.position.set(5, 10, 7);
   scene.add(sun);
 
-  // A faint plate under each layer so the three layers read clearly.
-  for (let layer = 0; layer < 3; layer++) {
-    const plate = new THREE.Mesh(
-      new THREE.BoxGeometry(3 * SPACING, 0.02, 3 * SPACING),
-      new THREE.MeshBasicMaterial({ color: 0x556677, transparent: true, opacity: 0.07, depthWrite: false })
-    );
-    plate.position.y = (1 - layer) * SPACING - 0.5;
-    scene.add(plate);
+  // --- Dividing planes ------------------------------------------------------
+  // The 3D version of the # grid: two planes across each axis, sitting
+  // halfway between cells, so they split the cube into 27 spaces.
+  const EXTENT = 3 * SPACING;
+  const planeGeo = new THREE.PlaneGeometry(EXTENT, EXTENT);
+  const planeEdgesGeo = new THREE.EdgesGeometry(planeGeo);
+  const planeMat = new THREE.MeshBasicMaterial({
+    color: 0x8a94a6, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false,
+  });
+  const planeEdgeMat = new THREE.LineBasicMaterial({ color: 0x6b7385, transparent: true, opacity: 0.45 });
+  const PLANE_OPACITY = 0.14, PLANE_EDGE_OPACITY = 0.45;
+  for (const offset of [-SPACING / 2, SPACING / 2]) {
+    // PlaneGeometry lies in the XY plane (facing z); rotate for the other two axes.
+    const orientations = [
+      { pos: [offset, 0, 0], rot: [0, Math.PI / 2, 0] },  // splits columns (x)
+      { pos: [0, offset, 0], rot: [Math.PI / 2, 0, 0] },  // splits layers (y)
+      { pos: [0, 0, offset], rot: [0, 0, 0] },            // splits rows (z)
+    ];
+    for (const { pos, rot } of orientations) {
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      plane.add(new THREE.LineSegments(planeEdgesGeo, planeEdgeMat));
+      plane.position.set(...pos);
+      plane.rotation.set(...rot);
+      scene.add(plane);
+    }
   }
 
   // --- Cells ---------------------------------------------------------------
-  const boxGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-  const edgesGeo = new THREE.EdgesGeometry(boxGeo);
+  // Each space has an invisible box used only for clicking. It is shown,
+  // tinted in the current player's colour, while the mouse hovers over it.
+  const boxGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
   const cells = [];
   for (let i = 0; i < 27; i++) {
-    const mat = new THREE.MeshBasicMaterial({ color: EMPTY_COLOR, transparent: true, opacity: 0.08, depthWrite: false });
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x667788, transparent: true, opacity: 0.5 });
-    const box = new THREE.Mesh(boxGeo, mat);
-    box.add(new THREE.LineSegments(edgesGeo, edgeMat));
+    const mat = new THREE.MeshBasicMaterial({
+      color: EMPTY_COLOR, transparent: true, opacity: 0.35, depthWrite: false, visible: false,
+    });
+    const box = new THREE.Mesh(boxGeo, mat);  // still hit by raycasts when not visible
     box.position.copy(cellPosition(i));
     box.userData.index = i;
     scene.add(box);
-    cells.push({ box, mat, edgeMat, marker: null, state: null });
+    cells.push({ box, mat, marker: null, state: null });
   }
 
   const markersGroup = new THREE.Group();
@@ -106,13 +124,13 @@ function createView3D(container, onPick) {
   function setHover(i) {
     if (hovered === i) return;
     if (hovered !== null && !cells[hovered].state) {
-      cells[hovered].mat.color.setHex(EMPTY_COLOR);
-      cells[hovered].mat.opacity = 0.08;
+      cells[hovered].mat.visible = false;
     }
     hovered = i;
     if (i !== null) {
       cells[i].mat.color.setHex(COLORS[turn]);
       cells[i].mat.opacity = 0.35;
+      cells[i].mat.visible = true;
     }
     renderer.domElement.style.cursor = i !== null ? 'pointer' : '';
   }
@@ -185,16 +203,16 @@ function createView3D(container, onPick) {
         c.state = null;
         c.marker = null;
         c.box.visible = true;
-        c.mat.color.setHex(EMPTY_COLOR);
-        c.mat.opacity = 0.08;
-        c.edgeMat.opacity = 0.5;
+        c.mat.visible = false;
       });
-      // Banned centre: a small solid grey block that can't be picked.
+      planeMat.opacity = PLANE_OPACITY;
+      planeEdgeMat.opacity = PLANE_EDGE_OPACITY;
+      // Banned centre: a solid grey block that can't be picked.
       const banned = cells[bannedIndex];
       banned.state = '#';
       banned.mat.color.setHex(0x999999);
       banned.mat.opacity = 0.6;
-      banned.edgeMat.opacity = 0.2;
+      banned.mat.visible = true;
     },
 
     setTurn(player) {
@@ -247,8 +265,9 @@ function createView3D(container, onPick) {
       const inLine = new Set([...done.X, ...done.O].flat());
       cells.forEach((c, i) => {
         if (c.marker && !inLine.has(i)) c.marker.mat.opacity = 0.2;
-        if (!c.state) c.edgeMat.opacity = 0.12;
       });
+      planeMat.opacity = PLANE_OPACITY / 2;
+      planeEdgeMat.opacity = PLANE_EDGE_OPACITY / 3;
     },
   };
 }
