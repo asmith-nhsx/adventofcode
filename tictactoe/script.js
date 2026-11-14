@@ -53,6 +53,8 @@ const LINES_THROUGH = Array.from({ length: CELLS }, (_, i) =>
 
 const boardsEl = document.getElementById('boards');
 const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const resultTextEl = document.getElementById('result-text');
 const scoreEls = {
   X: document.getElementById('score-x'),
   O: document.getElementById('score-o'),
@@ -95,6 +97,8 @@ function newGame() {
   board = Array(CELLS).fill(null);
   current = 'X';
   gameOver = false;
+  resultEl.hidden = true;
+  boardsEl.classList.remove('game-over');
   cells.forEach(c => {
     c.textContent = '';
     c.className = 'cell';
@@ -180,6 +184,17 @@ function endGame(message, result, counts) {
   scores[result]++;
   scoreEls[result].textContent = scores[result];
   setBoardEnabled(false);
+
+  // Big coloured banner, and fade everything except the completed lines.
+  let text = message;
+  if (vsComputer() && result !== 'draw') {
+    text = result === 'X' ? '🎉 You win!' : 'Computer wins!';
+  }
+  resultTextEl.textContent = text;
+  resultEl.className = `result ${result.toLowerCase()}`;
+  resultEl.hidden = false;
+  boardsEl.classList.add('game-over');
+  document.getElementById('play-again').focus();
 }
 
 function setBoardEnabled(enabled) {
@@ -281,6 +296,7 @@ function computerMove() {
 }
 
 document.getElementById('new-game').addEventListener('click', newGame);
+document.getElementById('play-again').addEventListener('click', newGame);
 document.getElementById('reset-scores').addEventListener('click', () => {
   scores.X = scores.O = scores.draw = 0;
   Object.keys(scoreEls).forEach(k => (scoreEls[k].textContent = '0'));

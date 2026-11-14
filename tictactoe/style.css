@@ -99,6 +99,63 @@ h1 {
   color: #fff;
 }
 
+/* End-of-game banner. */
+.result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  max-width: 640px;
+  margin: 0 auto 16px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: pop 0.35s ease-out;
+}
+
+.result[hidden] {
+  display: none;
+}
+
+.result.x { background: #d33; }
+.result.o { background: #26c; }
+.result.draw { background: #555; }
+
+.result button {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: 2px solid #fff;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.result button:hover,
+.result button:focus-visible {
+  background: #fff;
+  color: #222;
+}
+
+@keyframes pop {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result { animation: none; }
+}
+
+/* Once the game is over, fade everything except the completed lines. */
+#boards.game-over .cell:not(.win) {
+  opacity: 0.35;
+}
+
 .scores {
   display: flex;
   justify-content: center;
