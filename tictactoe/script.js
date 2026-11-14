@@ -102,23 +102,51 @@ function setBoardEnabled(enabled) {
   });
 }
 
-// Simple computer: win if possible, block if needed,
-// otherwise take centre, then a corner, then any free cell.
-function computerMove() {
-  const free = board.map((v, i) => (v ? null : i)).filter(i => i !== null);
+// Computer opponent (plays O) using minimax: it searches every possible
+// continuation of the game and picks the move with the best guaranteed
+// outcome, so it never loses. It also defends against forks (two threats
+// at once) because it sees them coming several moves ahead.
+function freeCells(b) {
+  return b.map((v, i) => (v ? null : i)).filter(i => i !== null);
+}
 
-  for (const player of ['O', 'X']) {   // try to win first, then block
-    for (const i of free) {
-      const trial = board.slice();
-      trial[i] = player;
-      if (findWinner(trial)) return i;
+// Score from O's point of view: +10 win, -10 loss, 0 draw.
+// Depth adjustment prefers faster wins and slower losses.
+function minimax(b, player, depth) {
+  const win = findWinner(b);
+  if (win) return win.player === 'O' ? 10 - depth : depth - 10;
+  const free = freeCells(b);
+  if (free.length === 0) return 0;
+
+  let best = player === 'O' ? -Infinity : Infinity;
+  for (const i of free) {
+    b[i] = player;
+    const score = minimax(b, player === 'O' ? 'X' : 'O', depth + 1);
+    b[i] = null;
+    best = player === 'O' ? Math.max(best, score) : Math.min(best, score);
+  }
+  return best;
+}
+
+function computerMove() {
+  const b = board.slice();
+  let bestScore = -Infinity;
+  let bestMoves = [];
+
+  for (const i of freeCells(b)) {
+    b[i] = 'O';
+    const score = minimax(b, 'X', 1);
+    b[i] = null;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMoves = [i];
+    } else if (score === bestScore) {
+      bestMoves.push(i);
     }
   }
 
-  if (free.includes(4)) return 4;
-  const corners = [0, 2, 6, 8].filter(i => free.includes(i));
-  const options = corners.length ? corners : free;
-  return options[Math.floor(Math.random() * options.length)];
+  // Pick randomly among equally good moves so games vary.
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
 }
 
 document.getElementById('new-game').addEventListener('click', newGame);
