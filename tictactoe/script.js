@@ -7,9 +7,15 @@ const CELLS = SIZE * SIZE * SIZE; // 27
 
 const idx = (x, y, z) => z * 9 + y * 3 + x;
 
+// The very centre of the cube (middle square of the middle layer) is
+// banned: it sits on 13 lines and taking it gives X a forced win.
+const BANNED = idx(1, 1, 1); // 13
+const BLOCKED = '#';         // board value for the banned cell
+
 // Build every winning line: for each start cell and each of the 26
 // directions, keep the line if all 3 cells fit inside the cube.
-// Each line is found from both ends, so de-duplicate. Result: 49 lines.
+// Each line is found from both ends, so de-duplicate. That gives 49
+// lines; dropping the 13 through the banned centre leaves 36.
 const WIN_LINES = (() => {
   const seen = new Set();
   const lines = [];
@@ -33,7 +39,7 @@ const WIN_LINES = (() => {
                 lines.push(line);
               }
             }
-  return lines;
+  return lines.filter(l => !l.includes(BANNED));
 })();
 
 // Lines passing through each cell (used for move ordering).
@@ -90,6 +96,10 @@ function newGame() {
     c.className = 'cell';
     c.disabled = false;
   });
+  board[BANNED] = BLOCKED;
+  cells[BANNED].classList.add('blocked');
+  cells[BANNED].disabled = true;
+  cells[BANNED].setAttribute('aria-label', 'Centre of the cube (not playable)');
   statusEl.textContent = 'X to play';
 }
 
