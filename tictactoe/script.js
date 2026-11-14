@@ -89,6 +89,17 @@ for (let z = 0; z < SIZE; z++) {
   boardsEl.appendChild(layer);
 }
 
+// The rotatable 3D board (view3d.js). If three.js fails to load, for
+// example when offline, the flat layer boards still work on their own.
+const view3dEl = document.getElementById('view3d');
+let view = null;
+try {
+  view = createView3D(view3dEl, handleMove);
+} catch (err) {
+  console.warn('3D view unavailable, using flat boards only:', err);
+  view3dEl.hidden = true;
+}
+
 function vsComputer() {
   return document.querySelector('input[name="mode"]:checked').value === 'cpu';
 }
@@ -108,6 +119,11 @@ function newGame() {
   cells[BANNED].classList.add('blocked');
   cells[BANNED].disabled = true;
   cells[BANNED].setAttribute('aria-label', 'Centre of the cube (not playable)');
+  if (view) {
+    view.reset(BANNED);
+    view.setTurn(current);
+    view.setInteractive(true);
+  }
   updateStatus(countLines(board));
 }
 
@@ -137,6 +153,7 @@ function updateStatus(counts, prefix = `${current} to play`) {
 
 function handleMove(i) {
   if (gameOver || board[i]) return;
+  if (vsComputer() && current === 'O') return;  // computer's turn
   placeMark(i);
 
   // Computer plays O.
@@ -162,6 +179,10 @@ function placeMark(i) {
     line.forEach(k => cells[k].classList.add('win'));
   }
   const counts = { X: done.X.length, O: done.O.length };
+  if (view) {
+    view.setMark(i, current);
+    view.showLines(done);
+  }
 
   if (counts[current] >= LINES_TO_WIN) {
     endGame(`${current} wins!`, current, counts);
@@ -174,6 +195,7 @@ function placeMark(i) {
     }
   } else {
     current = current === 'X' ? 'O' : 'X';
+    if (view) view.setTurn(current);
     updateStatus(counts);
   }
 }
@@ -194,6 +216,7 @@ function endGame(message, result, counts) {
   resultEl.className = `result ${result.toLowerCase()}`;
   resultEl.hidden = false;
   boardsEl.classList.add('game-over');
+  if (view) view.setGameOver(completedLines(board));
   document.getElementById('play-again').focus();
 }
 
@@ -201,6 +224,7 @@ function setBoardEnabled(enabled) {
   cells.forEach((c, i) => {
     c.disabled = !enabled || board[i] !== null;
   });
+  if (view) view.setInteractive(enabled);
 }
 
 // ---------------------------------------------------------------------------

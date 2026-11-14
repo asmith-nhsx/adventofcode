@@ -1,0 +1,250 @@
+// 3D view of the 3x3x3 board using three.js (global THREE + OrbitControls).
+// Drag to rotate, scroll to zoom, click an empty cell to play.
+//
+// createView3D(container, onPick) returns an object the game uses to keep
+// the view in sync: reset, setMark, setTurn, showLines, setGameOver,
+// setInteractive.
+
+function createView3D(container, onPick) {
+  const SPACING = 1.6;
+  const COLORS = { X: 0xdd3333, O: 0x2266cc };
+  const EMPTY_COLOR = 0x8899aa;
+
+  // Cell index = layer * 9 + row * 3 + col. Layer 0 (top) is highest.
+  function cellPosition(i) {
+    const col = i % 3, row = Math.floor(i / 3) % 3, layer = Math.floor(i / 9);
+    return new THREE.Vector3((col - 1) * SPACING, (1 - layer) * SPACING, (row - 1) * SPACING);
+  }
+
+  // --- Scene setup --------------------------------------------------------
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(6, 5, 8);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.enablePan = false;
+  controls.minDistance = 6;
+  controls.maxDistance = 18;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+  sun.position.set(5, 10, 7);
+  scene.add(sun);
+
+  // A faint plate under each layer so the three layers read clearly.
+  for (let layer = 0; layer < 3; layer++) {
+    const plate = new THREE.Mesh(
+      new THREE.BoxGeometry(3 * SPACING, 0.02, 3 * SPACING),
+      new THREE.MeshBasicMaterial({ color: 0x556677, transparent: true, opacity: 0.07, depthWrite: false })
+    );
+    plate.position.y = (1 - layer) * SPACING - 0.5;
+    scene.add(plate);
+  }
+
+  // --- Cells ---------------------------------------------------------------
+  const boxGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+  const edgesGeo = new THREE.EdgesGeometry(boxGeo);
+  const cells = [];
+  for (let i = 0; i < 27; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: EMPTY_COLOR, transparent: true, opacity: 0.08, depthWrite: false });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x667788, transparent: true, opacity: 0.5 });
+    const box = new THREE.Mesh(boxGeo, mat);
+    box.add(new THREE.LineSegments(edgesGeo, edgeMat));
+    box.position.copy(cellPosition(i));
+    box.userData.index = i;
+    scene.add(box);
+    cells.push({ box, mat, edgeMat, marker: null, state: null });
+  }
+
+  const markersGroup = new THREE.Group();
+  const linesGroup = new THREE.Group();
+  scene.add(markersGroup, linesGroup);
+
+  // X is two crossed bars, O is a ring. Both are turned to face the camera
+  // every frame so they read correctly from any angle.
+  function makeMarker(player) {
+    const mat = new THREE.MeshStandardMaterial({
+      color: COLORS[player], roughness: 0.4, metalness: 0.1, transparent: true,
+    });
+    const group = new THREE.Group();
+    if (player === 'X') {
+      for (const angle of [Math.PI / 4, -Math.PI / 4]) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.17, 0.17), mat);
+        bar.rotation.z = angle;
+        group.add(bar);
+      }
+    } else {
+      group.add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 16, 40), mat));
+    }
+    return { group, mat };
+  }
+
+  function disposeGroup(group) {
+    group.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+    group.clear();
+  }
+
+  // --- State ---------------------------------------------------------------
+  let turn = 'X';
+  let interactive = true;
+  let gameOver = false;
+  let hovered = null;
+
+  function setHover(i) {
+    if (hovered === i) return;
+    if (hovered !== null && !cells[hovered].state) {
+      cells[hovered].mat.color.setHex(EMPTY_COLOR);
+      cells[hovered].mat.opacity = 0.08;
+    }
+    hovered = i;
+    if (i !== null) {
+      cells[i].mat.color.setHex(COLORS[turn]);
+      cells[i].mat.opacity = 0.35;
+    }
+    renderer.domElement.style.cursor = i !== null ? 'pointer' : '';
+  }
+
+  // --- Picking: click (not drag) on the nearest empty cell under the mouse --
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
+  function pickCell(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    // Only empty cells are targets, so you can click "through" filled ones.
+    const targets = cells.filter(c => !c.state).map(c => c.box);
+    const hit = raycaster.intersectObjects(targets, false)[0];
+    return hit ? hit.object.userData.index : null;
+  }
+
+  let downX = 0, downY = 0, dragging = false;
+  const el = renderer.domElement;
+  el.addEventListener('pointerdown', e => {
+    downX = e.clientX; downY = e.clientY; dragging = true;
+  });
+  el.addEventListener('pointermove', e => {
+    if (dragging && Math.hypot(e.clientX - downX, e.clientY - downY) > 5) {
+      setHover(null);
+      return;
+    }
+    setHover(interactive && !gameOver && e.pointerType === 'mouse' ? pickCell(e) : null);
+  });
+  el.addEventListener('pointerleave', () => setHover(null));
+  el.addEventListener('pointerup', e => {
+    dragging = false;
+    const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+    if (moved > 5 || !interactive || gameOver) return;
+    const i = pickCell(e);
+    if (i !== null) {
+      setHover(null);
+      onPick(i);
+    }
+  });
+
+  // --- Sizing and render loop ---------------------------------------------
+  function resize() {
+    const w = container.clientWidth, h = container.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(container);
+  resize();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    markersGroup.children.forEach(m => m.quaternion.copy(camera.quaternion));
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // --- API used by the game -------------------------------------------------
+  return {
+    reset(bannedIndex) {
+      disposeGroup(markersGroup);
+      disposeGroup(linesGroup);
+      gameOver = false;
+      hovered = null;
+      cells.forEach(c => {
+        c.state = null;
+        c.marker = null;
+        c.box.visible = true;
+        c.mat.color.setHex(EMPTY_COLOR);
+        c.mat.opacity = 0.08;
+        c.edgeMat.opacity = 0.5;
+      });
+      // Banned centre: a small solid grey block that can't be picked.
+      const banned = cells[bannedIndex];
+      banned.state = '#';
+      banned.mat.color.setHex(0x999999);
+      banned.mat.opacity = 0.6;
+      banned.edgeMat.opacity = 0.2;
+    },
+
+    setTurn(player) {
+      turn = player;
+    },
+
+    setInteractive(on) {
+      interactive = on;
+      if (!on) setHover(null);
+    },
+
+    setMark(i, player) {
+      const c = cells[i];
+      c.state = player;
+      c.box.visible = false;
+      c.marker = makeMarker(player);
+      c.marker.group.position.copy(cellPosition(i));
+      markersGroup.add(c.marker.group);
+    },
+
+    // done = { X: [lines], O: [lines] }: draw a rod through each completed
+    // line and make its markers glow in the player's colour.
+    showLines(done) {
+      disposeGroup(linesGroup);
+      for (const player of ['X', 'O']) {
+        for (const line of done[player]) {
+          const start = cellPosition(line[0]);
+          const end = cellPosition(line[2]);
+          const rod = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, start.distanceTo(end) + 0.9, 12),
+            new THREE.MeshStandardMaterial({ color: COLORS[player], emissive: COLORS[player], emissiveIntensity: 0.4 })
+          );
+          rod.position.copy(start).add(end).multiplyScalar(0.5);
+          rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.clone().sub(start).normalize());
+          linesGroup.add(rod);
+          for (const i of line) {
+            const m = cells[i].marker;
+            m.mat.emissive.setHex(COLORS[player]);
+            m.mat.emissiveIntensity = 0.5;
+            m.group.scale.setScalar(1.15);
+          }
+        }
+      }
+    },
+
+    // Fade everything except completed lines so the result stands out.
+    setGameOver(done) {
+      gameOver = true;
+      setHover(null);
+      const inLine = new Set([...done.X, ...done.O].flat());
+      cells.forEach((c, i) => {
+        if (c.marker && !inLine.has(i)) c.marker.mat.opacity = 0.2;
+        if (!c.state) c.edgeMat.opacity = 0.12;
+      });
+    },
+  };
+}
