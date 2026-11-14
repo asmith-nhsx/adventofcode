@@ -1,14 +1,18 @@
 // 3D Noughts and Crosses (3x3x3) in plain JavaScript.
 // The cube is shown as three flat 3x3 layers.
 // Cell index = layer * 9 + row * 3 + col.
+//
+// Play continues after a line is made: the first player to complete
+// LINES_TO_WIN lines wins. If the board fills first, most lines wins.
 
 const SIZE = 3;
 const CELLS = SIZE * SIZE * SIZE; // 27
+const LINES_TO_WIN = 3;
 
 const idx = (x, y, z) => z * 9 + y * 3 + x;
 
 // The very centre of the cube (middle square of the middle layer) is
-// banned: it sits on 13 lines and taking it gives X a forced win.
+// banned: it sits on 13 lines and taking it gives X a huge advantage.
 const BANNED = idx(1, 1, 1); // 13
 const BLOCKED = '#';         // board value for the banned cell
 
@@ -55,7 +59,7 @@ const scoreEls = {
   draw: document.getElementById('score-draw'),
 };
 
-let board;          // array of 27: 'X', 'O' or null
+let board;          // array of 27: 'X', 'O', BLOCKED or null
 let current;        // whose turn: 'X' or 'O'
 let gameOver;
 const scores = { X: 0, O: 0, draw: 0 };
@@ -100,17 +104,31 @@ function newGame() {
   cells[BANNED].classList.add('blocked');
   cells[BANNED].disabled = true;
   cells[BANNED].setAttribute('aria-label', 'Centre of the cube (not playable)');
-  statusEl.textContent = 'X to play';
+  updateStatus(countLines(board));
 }
 
-function findWinner(b) {
+// Completed lines for each player.
+function completedLines(b) {
+  const done = { X: [], O: [] };
   for (const line of WIN_LINES) {
     const [a, c, d] = line;
-    if (b[a] && b[a] === b[c] && b[a] === b[d]) {
-      return { player: b[a], line };
+    if ((b[a] === 'X' || b[a] === 'O') && b[a] === b[c] && b[a] === b[d]) {
+      done[b[a]].push(line);
     }
   }
-  return null;
+  return done;
+}
+
+function countLines(b) {
+  const done = completedLines(b);
+  return { X: done.X.length, O: done.O.length };
+}
+
+const plural = n => `${n} line${n === 1 ? '' : 's'}`;
+
+function updateStatus(counts, prefix = `${current} to play`) {
+  statusEl.textContent =
+    `${prefix} · X: ${plural(counts.X)}, O: ${plural(counts.O)} (first to ${LINES_TO_WIN})`;
 }
 
 function handleMove(i) {
@@ -120,7 +138,7 @@ function handleMove(i) {
   // Computer plays O.
   if (!gameOver && vsComputer() && current === 'O') {
     setBoardEnabled(false);
-    statusEl.textContent = 'Computer is thinking…';
+    updateStatus(countLines(board), 'Computer is thinking…');
     setTimeout(() => {
       placeMark(computerMove());
       if (!gameOver) setBoardEnabled(true);
@@ -134,21 +152,31 @@ function placeMark(i) {
   cells[i].classList.add(current.toLowerCase());
   cells[i].disabled = true;
 
-  const win = findWinner(board);
-  if (win) {
-    win.line.forEach(k => cells[k].classList.add('win'));
-    endGame(`${win.player} wins!`, win.player);
+  // Highlight every completed line (a move can complete several at once).
+  const done = completedLines(board);
+  for (const line of [...done.X, ...done.O]) {
+    line.forEach(k => cells[k].classList.add('win'));
+  }
+  const counts = { X: done.X.length, O: done.O.length };
+
+  if (counts[current] >= LINES_TO_WIN) {
+    endGame(`${current} wins!`, current, counts);
   } else if (board.every(Boolean)) {
-    endGame("It's a draw!", 'draw');
+    // Board full before anyone reached the target: most lines wins.
+    if (counts.X === counts.O) endGame("Board full: it's a draw!", 'draw', counts);
+    else {
+      const leader = counts.X > counts.O ? 'X' : 'O';
+      endGame(`Board full: ${leader} wins on lines!`, leader, counts);
+    }
   } else {
     current = current === 'X' ? 'O' : 'X';
-    statusEl.textContent = `${current} to play`;
+    updateStatus(counts);
   }
 }
 
-function endGame(message, result) {
+function endGame(message, result, counts) {
   gameOver = true;
-  statusEl.textContent = message;
+  updateStatus(counts, message);
   scores[result]++;
   scoreEls[result].textContent = scores[result];
   setBoardEnabled(false);
@@ -162,13 +190,13 @@ function setBoardEnabled(enabled) {
 
 // ---------------------------------------------------------------------------
 // Computer opponent (plays O).
-// A full game-tree search of 27 cells is far too big, so it uses minimax
-// with alpha-beta pruning to a limited depth, then scores the position:
-// each line still open to only one player is worth points to that player,
-// and two-in-a-line (a threat) is worth much more than one.
+// Minimax with alpha-beta pruning to a limited depth. Positions are scored by
+// completed lines (heavily weighted), then by lines still open to only one
+// player, with two-in-a-line (a threat) worth much more than one.
 // ---------------------------------------------------------------------------
 const SEARCH_DEPTH = 4;
-const WIN_SCORE = 100000;
+const WIN_SCORE = 1000000;
+const LINE_SCORE = 1000;
 
 function freeCells(b) {
   const free = [];
@@ -177,29 +205,36 @@ function freeCells(b) {
   return free.sort((a, c) => LINES_THROUGH[c] - LINES_THROUGH[a]);
 }
 
-function evaluate(b) {
-  let score = 0;
+// One pass over the lines: completed counts plus a positional score.
+function analyse(b) {
+  let x3 = 0, o3 = 0, score = 0;
   for (const [a, c, d] of WIN_LINES) {
     let o = 0, x = 0;
     for (const v of [b[a], b[c], b[d]]) {
       if (v === 'O') o++;
       else if (v === 'X') x++;
     }
-    if (o && x) continue;       // blocked line, worthless to both
-    if (o === 2) score += 50;
+    if (o === 3) o3++;
+    else if (x === 3) x3++;
+    else if (o && x) continue;  // blocked line, worthless to both
+    else if (o === 2) score += 50;
     else if (o === 1) score += 2;
-    if (x === 2) score -= 50;
+    else if (x === 2) score -= 50;
     else if (x === 1) score -= 2;
   }
-  return score;
+  return { x3, o3, score: score + (o3 - x3) * LINE_SCORE };
 }
 
 function minimax(b, player, depth, alpha, beta) {
-  const win = findWinner(b);
-  if (win) return win.player === 'O' ? WIN_SCORE - depth : depth - WIN_SCORE;
+  const { x3, o3, score } = analyse(b);
+  if (o3 >= LINES_TO_WIN) return WIN_SCORE - depth;
+  if (x3 >= LINES_TO_WIN) return depth - WIN_SCORE;
   const free = freeCells(b);
-  if (free.length === 0) return 0;
-  if (depth >= SEARCH_DEPTH) return evaluate(b);
+  if (free.length === 0) {
+    if (o3 === x3) return 0;
+    return o3 > x3 ? WIN_SCORE - depth : depth - WIN_SCORE;
+  }
+  if (depth >= SEARCH_DEPTH) return score;
 
   if (player === 'O') {
     let best = -Infinity;
