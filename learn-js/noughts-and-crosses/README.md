@@ -23,7 +23,7 @@ messages from `console.log`.
 - [x] Step 1: Page structure
 - [x] Step 2: Make clicks do something
 - [x] Step 3: Store the board in an array and take turns between X and O
-- [ ] Step 4: Check for a win or a draw
+- [x] Step 4: Check for a win or a draw
 - [ ] Step 5: Restart button
 
 ---
@@ -147,26 +147,99 @@ cells.forEach((cell) => {
   if (board[index] !== "") return; // square taken: ignore the click
   ```
 
-## Step 4: Check for a win or a draw (in progress)
+## Step 4: Check for a win or a draw ✅
+
+What I wrote (key parts):
+
+```js
+const winningLines = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+  [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+  [0, 4, 8], [2, 4, 6],            // diagonals
+];
+let gameOver = false;
+
+function checkWinner() {
+  for (const [a, b, c] of winningLines) {
+    if (board[a] !== "" && board[a] === board[b] && board[b] === board[c]) {
+      return board[a];
+    }
+  }
+  return null;
+}
+
+// inside the click handler, after placing the move:
+if (gameOver) return;
+// ...
+const winner = checkWinner();
+if (winner !== null) {
+  gameOver = true;
+  statusMsg.textContent = `Player ${winner} wins!`;
+  return;
+}
+if (!board.includes("")) {
+  gameOver = true;
+  statusMsg.textContent = "It's a draw!";
+  return;
+}
+```
+
+### What I learned
+
+**Destructuring** unpacks arrays/objects into variables in one line.
+
+```js
+const [first, second, third] = ["red", "green", "blue"]; // by position
+const [a, , c] = [1, 2, 3];        // skip one
+const [head, ...rest] = [1, 2, 3]; // rest = [2, 3]
+[p, q] = [q, p];                   // swap two variables
+const { name, score } = player;    // objects: by property name
+const { target } = event;          // same as event.target
+for (const [x, y] of points) { }   // destructure in a loop
+```
+
+**`for...of` vs `forEach`**
+
+| | `for...of` | `forEach` |
+|---|---|---|
+| Stop early (`break`/`return`) | ✅ Yes | ❌ No: `return` only exits the callback |
+| Skip an item | `continue` | `return` in the callback |
+| Get the index | `for (const [i, x] of arr.entries())` | `arr.forEach((x, i) => ...)` |
+| Works on | Any iterable (arrays, strings, `NodeList`, `Map`, `Set`) | Arrays (and `NodeList`) |
+| `await` inside | ✅ Waits for each | ❌ Doesn't wait |
+
+- Use `forEach` to do something to every item (e.g. adding click handlers).
+- Use `for...of` when you might stop early or are searching (e.g.
+  `checkWinner`).
+- Avoid `for...in` on arrays: it gives the **keys** (indices as strings),
+  not the values.
+
+**Order of checks matters.** Check for a win *before* a draw: if the last move
+fills the board and completes a line, it's a win.
+
+**`array.includes(value)`** returns `true` if the value is in the array.
+`!board.includes("")` means "no empty squares left".
+
+**Backticks only when needed.** Use template literals when there's a `${}` in
+the string; otherwise ordinary quotes are fine.
+
+**Format your code** in VS Code with **Shift+Alt+F**.
+
+## Step 5: Restart button (in progress)
 
 Task:
 
-1. List every winning line as an array of indices. There are 8:
-   3 rows, 3 columns and 2 diagonals, e.g.
-   `const winningLines = [[0, 1, 2], [3, 4, 5], ... ];`
-2. Write a function `checkWinner()` that loops over `winningLines`. For each
-   line `[a, b, c]`, if `board[a]` is not empty and
-   `board[a] === board[b] && board[a] === board[c]`, return `board[a]`.
-   Otherwise return `null` after the loop.
-   Hint: destructuring, `const [a, b, c] = line;`
-3. After each move (before switching player), call `checkWinner()`. If there
-   is a winner, show `` `Player ${winner} wins!` `` and stop the game.
-4. A draw is when there's no winner and every square is filled. Look up
-   `board.includes("")` or `board.every(...)`.
-5. Add `let gameOver = false;` and ignore clicks when it is `true`.
+1. Get the `#restart` button and add a click handler to it.
+2. In the handler, reset all the game state: `board`, `currentPlayer` and
+   `gameOver`.
+3. Clear the text from every cell on screen.
+4. Reset the status message.
+5. Tidy up: put the reset code in a function `resetGame()`, and think about
+   whether the status-message code is repeated anywhere and could be a small
+   function too.
 
-Check: X wins across the top row, O wins on a diagonal, a full board with no
-line says it's a draw, and no clicks work after the game ends.
+Check: play a game to a win, click Restart, and you can play a fresh game
+starting with X. Do the same after a draw, and mid-game.
 
 ---
 
