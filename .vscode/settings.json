@@ -1,0 +1,9 @@
+{
+  // Turn off AI "ghost text" suggestions while learning JavaScript,
+  // so the editor doesn't write the answers. Normal IntelliSense
+  // (the dropdown of names like textContent) still works.
+  "editor.inlineSuggest.enabled": false,
+  "github.copilot.enable": {
+    "*": false
+  }
+}
