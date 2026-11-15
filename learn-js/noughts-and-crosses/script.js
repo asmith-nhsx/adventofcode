@@ -7,6 +7,7 @@ let currentPlayer = "X";
 
 const cells = document.querySelectorAll(".cell");
 const statusMsg = document.getElementById("status");
+const resetBtn = document.getElementById("reset");
 const winningLines = [
   [0, 1, 2],
   [3, 4, 5],
@@ -28,6 +29,22 @@ function checkWinner() {
   return null;
 }
 
+function resetGame() {
+  cells.forEach((cell) => {
+    let index = parseInt(cell.dataset.index);
+    board[index] = "";
+    cell.textContent = "";
+  });
+  setStatus("Player X's turn");
+  currentPlayer = "X";
+  gameOver = false;
+}
+
+function setStatus(message) {
+  statusMsg.textContent = message;
+}
+
+resetBtn.addEventListener("click", () => { resetGame(); });
 cells.forEach((cell) => {
   cell.addEventListener("click", (event) => {
     if (gameOver) return;
@@ -39,16 +56,16 @@ cells.forEach((cell) => {
       const winner = checkWinner();
       if (winner !== null) {
         gameOver = true;
-        statusMsg.textContent = `Player ${currentPlayer} wins!`;
+        setStatus(`Player ${currentPlayer} wins!`);
         return;
       }
       if (!board.includes("")) {
         gameOver = true;
-        statusMsg.textContent = "It's a draw!";
+        setStatus("It's a draw!");
         return;
       }
       currentPlayer = currentPlayer === "X" ? "O" : "X";
-      statusMsg.textContent = `Player: ${currentPlayer}'s turn`;
+      setStatus(`Player: ${currentPlayer}'s turn`);
     }
   });
 });
