@@ -22,7 +22,7 @@ messages from `console.log`.
 
 - [x] Step 1: Page structure
 - [x] Step 2: Make clicks do something
-- [ ] Step 3: Store the board in an array and take turns between X and O
+- [x] Step 3: Store the board in an array and take turns between X and O
 - [ ] Step 4: Check for a win or a draw
 - [ ] Step 5: Restart button
 
@@ -105,24 +105,68 @@ Tip: `console.log(event)` and expand it in DevTools to explore it.
 available, so `cell.dataset.index` works as well as
 `event.target.dataset.index`. Functions "remember" the variables around them.
 
-## Step 3: Store the board and take turns (in progress)
+## Step 3: Store the board and take turns ✅
+
+What I wrote:
+
+```js
+let board = ["", "", "", "", "", "", "", "", ""];
+let currentPlayer = "X";
+
+const cells = document.querySelectorAll(".cell");
+const statusMsg = document.getElementById("status");
+
+cells.forEach((cell) => {
+  cell.addEventListener("click", (event) => {
+    let index = parseInt(event.target.dataset.index);
+    if (board[index] === "") {
+      board[index] = currentPlayer;
+      event.target.textContent = currentPlayer;
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      statusMsg.textContent = `Current player: ${currentPlayer}`;
+    }
+  });
+});
+```
+
+### What I learned
+
+- **Game state lives in JavaScript, not the page.** `board` is the source of
+  truth; the buttons just display it.
+- **`===` (strict equality)** compares without converting types. Prefer it to
+  `==`, where `0 == ""` is `true`.
+- **Ternary operator:** `condition ? valueIfTrue : valueIfFalse`, e.g.
+  `currentPlayer = currentPlayer === "X" ? "O" : "X";`
+- **Look up elements once** (outside the loop or handler) and reuse them.
+- **`const` by default, `let` only if the variable is reassigned.**
+- **`parseInt` vs `Number`:** `parseInt("4abc")` is `4`; `Number("4abc")` is
+  `NaN`. With `parseInt`, pass the base: `parseInt(value, 10)`.
+- **Guard clauses** exit early instead of nesting:
+
+  ```js
+  if (board[index] !== "") return; // square taken: ignore the click
+  ```
+
+## Step 4: Check for a win or a draw (in progress)
 
 Task:
 
-1. Create the "real" board: `let board = ["", "", "", "", "", "", "", "", ""];`
-   (or `Array(9).fill("")`).
-2. Create `let currentPlayer = "X";`
-3. In the click handler, get the index as a number.
-4. If `board[index]` is already filled, `return` early (ignore the click).
-5. Otherwise set `board[index] = currentPlayer` and show it on screen with
-   `cell.textContent = currentPlayer`.
-6. Switch players: if it was `"X"`, make it `"O"`, and vice versa.
-   Try writing it with `if/else` first, then with the ternary operator
-   `condition ? a : b`.
-7. Update the `#status` paragraph to show `` `Player ${currentPlayer}'s turn` ``.
+1. List every winning line as an array of indices. There are 8:
+   3 rows, 3 columns and 2 diagonals, e.g.
+   `const winningLines = [[0, 1, 2], [3, 4, 5], ... ];`
+2. Write a function `checkWinner()` that loops over `winningLines`. For each
+   line `[a, b, c]`, if `board[a]` is not empty and
+   `board[a] === board[b] && board[a] === board[c]`, return `board[a]`.
+   Otherwise return `null` after the loop.
+   Hint: destructuring, `const [a, b, c] = line;`
+3. After each move (before switching player), call `checkWinner()`. If there
+   is a winner, show `` `Player ${winner} wins!` `` and stop the game.
+4. A draw is when there's no winner and every square is filled. Look up
+   `board.includes("")` or `board.every(...)`.
+5. Add `let gameOver = false;` and ignore clicks when it is `true`.
 
-Check: clicks alternate X/O, clicking a filled square does nothing, and
-`console.log(board)` shows the array filling up.
+Check: X wins across the top row, O wins on a diagonal, a full board with no
+line says it's a draw, and no clicks work after the game ends.
 
 ---
 
