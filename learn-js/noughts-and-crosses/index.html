@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noughts and Crosses</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Noughts and Crosses</h1>
+
+  <!-- The status line: we'll update this from JavaScript -->
+  <p id="status">Player X's turn</p>
+
+  <!-- The board: 9 buttons. data-index tells JS which square was clicked -->
+  <div id="board">
+    <button class="cell" data-index="0"></button>
+    <button class="cell" data-index="1"></button>
+    <button class="cell" data-index="2"></button>
+    <button class="cell" data-index="3"></button>
+    <button class="cell" data-index="4"></button>
+    <button class="cell" data-index="5"></button>
+    <button class="cell" data-index="6"></button>
+    <button class="cell" data-index="7"></button>
+    <button class="cell" data-index="8"></button>
+  </div>
+
+  <button id="restart">Restart</button>
+
+  <!-- Load the script last, so the HTML above exists when it runs -->
+  <script src="script.js"></script>
+</body>
+</html>
