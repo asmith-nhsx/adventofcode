@@ -21,7 +21,7 @@ messages from `console.log`.
 ## Progress
 
 - [x] Step 1: Page structure
-- [ ] Step 2: Make clicks do something
+- [x] Step 2: Make clicks do something
 - [ ] Step 3: Store the board in an array and take turns between X and O
 - [ ] Step 4: Check for a win or a draw
 - [ ] Step 5: Restart button
@@ -53,18 +53,76 @@ Things to notice in the HTML:
 game is stored. In JavaScript we keep an array of 9 values as the "real" board,
 and update the screen to match it.
 
-## Step 2: Make clicks do something (in progress)
+## Step 2: Make clicks do something ✅
 
-Task: write this yourself in `script.js`:
+What I wrote:
 
-1. Use `document.querySelectorAll(".cell")` to get all 9 squares and store them
-   in a `const`.
-2. Loop over them with `.forEach(...)`.
-3. Give each one a click handler with `addEventListener("click", ...)`.
-4. In the handler, `console.log` the clicked square's index.
-   Hint: `event.target.dataset.index`.
+```js
+const cells = document.querySelectorAll(".cell");
+cells.forEach((cell) => {
+  cell.addEventListener("click", (event) => {
+    console.log(`Cell clicked ${event.target.dataset.index}`);
+  });
+});
+```
 
-If it works, clicking squares prints `0`, `4`, `8` and so on in the console.
+Clicking a square logs e.g. `Cell clicked 4`.
+
+### What I learned
+
+**`querySelectorAll` + `forEach`** finds every element matching a CSS selector
+and loops over them to attach the same handler to each one.
+
+**Template literals** use backticks, with `${ }` for variables or any
+expression:
+
+```js
+console.log(`You clicked square ${index}`);
+console.log(`Next square is ${index + 1}`);
+```
+
+Normal `"quotes"` don't substitute: `"Square ${index}"` prints that text
+literally. `console.log("Board:", board)` (with a comma) is better for objects
+and arrays, because DevTools shows them as expandable trees.
+
+**The event object.** The browser calls the handler and passes it an event
+object describing what happened:
+
+| Property | What it is |
+|---|---|
+| `event.target` | The element that was actually clicked |
+| `event.currentTarget` | The element the listener is attached to |
+| `event.type` | The kind of event, e.g. `"click"` |
+| `event.clientX` / `clientY` | Mouse position in the window |
+
+Tip: `console.log(event)` and expand it in DevTools to explore it.
+
+**`dataset`.** Any `data-something` attribute in the HTML can be read as
+`element.dataset.something`. It is always a **string** (`"4"`), so use
+`Number(...)` to turn it into a number.
+
+**Closures.** Inside the handler, `cell` from the surrounding loop is still
+available, so `cell.dataset.index` works as well as
+`event.target.dataset.index`. Functions "remember" the variables around them.
+
+## Step 3: Store the board and take turns (in progress)
+
+Task:
+
+1. Create the "real" board: `let board = ["", "", "", "", "", "", "", "", ""];`
+   (or `Array(9).fill("")`).
+2. Create `let currentPlayer = "X";`
+3. In the click handler, get the index as a number.
+4. If `board[index]` is already filled, `return` early (ignore the click).
+5. Otherwise set `board[index] = currentPlayer` and show it on screen with
+   `cell.textContent = currentPlayer`.
+6. Switch players: if it was `"X"`, make it `"O"`, and vice versa.
+   Try writing it with `if/else` first, then with the ternary operator
+   `condition ? a : b`.
+7. Update the `#status` paragraph to show `` `Player ${currentPlayer}'s turn` ``.
+
+Check: clicks alternate X/O, clicking a filled square does nothing, and
+`console.log(board)` shows the array filling up.
 
 ---
 
