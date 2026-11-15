@@ -24,7 +24,7 @@ messages from `console.log`.
 - [x] Step 2: Make clicks do something
 - [x] Step 3: Store the board in an array and take turns between X and O
 - [x] Step 4: Check for a win or a draw
-- [ ] Step 5: Restart button
+- [x] Step 5: Restart button
 
 ---
 
@@ -225,21 +225,68 @@ the string; otherwise ordinary quotes are fine.
 
 **Format your code** in VS Code with **Shift+Alt+F**.
 
-## Step 5: Restart button (in progress)
+## Step 5: Reset button ✅
 
-Task:
+What I wrote (key parts). The button in `index.html` is
+`<button id="reset">Reset</button>`.
 
-1. Get the `#restart` button and add a click handler to it.
-2. In the handler, reset all the game state: `board`, `currentPlayer` and
-   `gameOver`.
-3. Clear the text from every cell on screen.
-4. Reset the status message.
-5. Tidy up: put the reset code in a function `resetGame()`, and think about
-   whether the status-message code is repeated anywhere and could be a small
-   function too.
+```js
+const resetBtn = document.getElementById("reset");
 
-Check: play a game to a win, click Restart, and you can play a fresh game
-starting with X. Do the same after a draw, and mid-game.
+function resetGame() {
+  board.fill("");
+  cells.forEach((cell) => {
+    cell.textContent = "";
+  });
+  currentPlayer = "X";
+  gameOver = false;
+  setStatus("Player X's turn");
+}
+
+function setStatus(message) {
+  statusMsg.textContent = message;
+}
+
+resetBtn.addEventListener("click", resetGame);
+```
+
+### What I learned
+
+- **Reset *all* the state:** board, screen, current player, `gameOver` and
+  status. A missed variable is a common restart bug.
+- **Helper functions** (`setStatus`) remove repeated code, so there's one
+  place to change.
+- **Hoisting:** `function name() {}` declarations can be called before they
+  appear in the file. Arrow functions stored in `const` cannot.
+- **Pass a function, don't call it:** `addEventListener("click", resetGame)`
+  (no brackets). With brackets, `resetGame()` runs immediately and its
+  *result* is passed instead. There's no need to wrap it in
+  `() => { resetGame(); }`.
+- **`array.fill(value)`** sets every element, e.g. `board.fill("")`.
+  `Array(9).fill("")` creates a new array of 9 empty strings.
+- **Keep game state separate from the page:** reset the array directly rather
+  than via the DOM elements.
+
+---
+
+## 🎉 Game complete
+
+### Ideas to take it further
+
+Each of these practises something new:
+
+1. **Highlight the winning line.** Return the line from `checkWinner()` and add
+   a CSS class to those cells (`classList.add`).
+2. **Score tracker** for X, O and draws that survives a reset. Then make it
+   survive a page refresh with `localStorage`.
+3. **Play against the computer.** Start with a random empty square, then make
+   it block your winning moves.
+4. **Turn it into a module with a class** (`class Game { ... }`) and ES modules
+   (`import`/`export`).
+5. **Accessibility:** add `aria-label`s to the cells and `aria-live` to the
+   status, then test with a screen reader.
+6. **Rebuild it on a `<canvas>`**: the next step towards real browser games
+   (see the roadmap below).
 
 ---
 
